@@ -7,10 +7,11 @@ from collections import deque
 
 class AVLTree:
     class TreeNode:
-        def __init__(self, value, left=None, right=None):
+        def __init__(self, key, value, left=None, right=None):
             """
             Initializes a tree node with a value and optional left and right children.
             """
+            self.key = key
             self.value = value
             self.left = left
             self.right = right
@@ -19,7 +20,7 @@ class AVLTree:
             """
             Returns a string representation of the node (its value).
             """
-            return str(self.value)
+            return str(self.key)
 
         @staticmethod
         def get_height(node):
@@ -94,7 +95,7 @@ class AVLTree:
             elif prev.right == curr:
                 prev.right = subtree
 
-    def get_node(self, value) -> tuple[TreeNode, TreeNode] | tuple[None, None]:
+    def get_node(self, key) -> TreeNode | None:
         """
         Finds the node with the given value.
         Returns a tuple of (parent, node) if found, or (None, None) if not found.
@@ -102,46 +103,45 @@ class AVLTree:
         curr = self.root
         while True:
             if curr is None:
-                return None, None
-            if curr.left and curr.left.value == value:
-                return curr, curr.left
-            if curr.right and curr.right.value == value:
-                return curr, curr.right
-            if value <= curr.value:
+                return None
+            if curr.key == key:
+                return curr
+            elif key <= curr.key:
                 curr = curr.left
             else:
                 curr = curr.right
 
-    def insert_value(self, value):
+    def insert(self, key, value):
         """
         Inserts a new value into the AVL tree.
         Raises ValueError if the value already exists.
         Automatically rebalances the tree after insertion.
         """
         if self.root is None:
-            self.root = self.TreeNode(value)
+            self.root = self.TreeNode(key, value)
             return
 
-        if self.get_node(value) != (None, None):
+        if self.get_node(key) is not None:
             raise ValueError('The element already exists!')
 
+        new_node = self.TreeNode(key, value)
         curr, visited = self.root, deque([])
         while True:
             visited.appendleft(curr)
-            if curr.value < value:
+            if curr.key < key:
                 if curr.right is None:
-                    curr.right = self.TreeNode(value)
+                    curr.right = new_node
                     break
                 curr = curr.right
             else:
                 if curr.left is None:
-                    curr.left = self.TreeNode(value)
+                    curr.left = new_node
                     break
                 curr = curr.left
 
         self.balance(visited)
 
-    def delete_value(self, value):
+    def delete(self, key):
         """
         Deletes the node with the specified value from the AVL tree.
         Handles standard BST deletion cases (0, 1, or 2 children).
@@ -156,16 +156,16 @@ class AVLTree:
                 curr = curr.left
             return curr
 
-        def delete(node: 'AVLTree.TreeNode', value):
+        def delete(node: 'AVLTree.TreeNode', key):
             if node is None:
                 return None
 
             visited.appendleft(node)
 
-            if value < node.value:
-                node.left = delete(node.left, value)
-            elif value > node.value:
-                node.right = delete(node.right, value)
+            if key < node.key:
+                node.left = delete(node.left, key)
+            elif key > node.key:
+                node.right = delete(node.right, key)
             else:
                 if node.left is None:
                     return node.right
@@ -173,12 +173,23 @@ class AVLTree:
                     return node.left
                 else:
                     successor = get_successor(node)
-                    node.value = successor.value
-                    node.right = delete(node.right, successor.value)
+                    node.key, node.value = successor.key, successor.value
+                    node.right = delete(node.right, successor.key)
 
             return node
 
         visited = deque([])
-        self.root = delete(self.root, value)
+        self.root = delete(self.root, key)
         self.balance(visited)
 
+
+class AVLTable(AVLTree):
+    def __init__(self, attrs: list, root=None):
+        super().__init__(root)
+        self.attrs = attrs
+
+    def insert(self, key, values: dict):
+        if not (len(self.attrs) == len(values) and all(val in self.attrs for val in values)):
+            raise ValueError("Values doesn't fit.")
+
+        super().insert(key, values)
