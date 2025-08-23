@@ -6,11 +6,11 @@ import json
 
 
 class DB:
-    def __init__(self):
+    def __init__(self, tree=AVLTree()):
         """
         Initializes the DB with an empty AVLTree to store tables.
         """
-        self.tree = AVLTree()
+        self.tree = tree
 
     def insert_table(self, name: str, attrs: list[str]):
         """
