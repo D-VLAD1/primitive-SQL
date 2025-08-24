@@ -23,7 +23,7 @@ class DB:
         """
         Retrieves the table with the given name.
         """
-        return self.tree.get_node(name).value
+        return self.tree.get_node(name)[1].value
 
     def delete_table(self, name: str):
         """
@@ -31,8 +31,14 @@ class DB:
         """
         self.tree.delete(name)
 
+    def edit_table(self, name: str, new_table: AVLTable):
+        """
+        Edits table with the given name.
+        """
+        self.tree.edit(name, new_table)
+
     @staticmethod
-    def to_dict(node) -> dict | None:
+    def to_dict(node: AVLTree.TreeNode) -> dict:
         """
         Transforms tree to a dict
 
@@ -40,7 +46,7 @@ class DB:
         :return: dict
         """
         if node is None:
-            return None
+            return {}
 
         output = {
             'key': node.key,
@@ -66,23 +72,29 @@ class DB:
             json.dump(tree_dict, file, indent=4)
 
     @staticmethod
-    def dict_to_tree(tree_dict: dict) -> AVLTree.TreeNode:
+    def dict_to_tree(tree_dict: dict) -> AVLTree:
         """
         Transforms dict to a tree
 
         :param tree_dict: dict
-        :return: TreeNode
+        :return: AVLTree
         """
-        left = DB.dict_to_tree(tree_dict['left']) if isinstance(tree_dict['left'], dict) and 'left' in tree_dict['left'] else tree_dict['left']
-        right = DB.dict_to_tree(tree_dict['right']) if isinstance(tree_dict['right'], dict) and 'left' in tree_dict['right'] else tree_dict['right']
+        if not tree_dict:
+            return AVLTree()
 
-        value = AVLTable(tree_dict['attrs'])
-        if isinstance(tree_dict['value'], dict) and 'left' in tree_dict['value']:
-            val_info = tree_dict['value']
-            value.insert(val_info['key'], val_info['value'])
+        left = DB.dict_to_tree(tree_dict['left']) if tree_dict.get('left') else None
+        right = DB.dict_to_tree(tree_dict['right']) if tree_dict.get('right') else None
+
+        value = None
+        if 'attrs' in tree_dict:
+            value = AVLTable(tree_dict['attrs'])
+            if isinstance(tree_dict['value'], dict) and 'left' in tree_dict['value']:
+                val_info = tree_dict['value']
+                value.insert(val_info['key'], val_info['value'])
 
         node = AVLTree.TreeNode(tree_dict['key'], value, left, right)
-        return node
+        tree = AVLTree(node)
+        return tree
 
     @classmethod
     def read_json(cls, filename: str = 'db.json'):
@@ -92,9 +104,13 @@ class DB:
         :param filename: str
         :return: DB
         """
-        with open(filename, 'r') as file:
-            tree_dict = json.load(file)
+        try:
+            with open(filename, 'r') as file:
+                tree_dict = json.load(file)
 
-        new_db = cls()
-        new_db.tree = cls.dict_to_tree(tree_dict)
-        return new_db
+            new_db = cls()
+            new_db.tree = cls.dict_to_tree(tree_dict)
+            return new_db
+
+        except Exception as e:
+            print('Error occurred during reading file: ', e)

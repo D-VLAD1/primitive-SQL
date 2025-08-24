@@ -95,21 +95,23 @@ class AVLTree:
             elif prev.right == curr:
                 prev.right = subtree
 
-    def get_node(self, key) -> TreeNode | None:
+    def get_node(self, key) -> tuple[TreeNode, TreeNode] | tuple[None, None]:
         """
         Finds the node with the given value.
         Returns a tuple of (parent, node) if found, or (None, None) if not found.
         """
         curr = self.root
+        prev = None
         while True:
             if curr is None:
-                return None
+                return prev, None
             if curr.key == key:
-                return curr
+                return prev, curr
             elif key <= curr.key:
                 curr = curr.left
             else:
                 curr = curr.right
+            prev = curr
 
     def insert(self, key, value):
         """
@@ -121,7 +123,7 @@ class AVLTree:
             self.root = self.TreeNode(key, value)
             return
 
-        if self.get_node(key) is not None:
+        if self.get_node(key) != (None, None):
             raise ValueError('The element already exists!')
 
         new_node = self.TreeNode(key, value)
@@ -160,12 +162,12 @@ class AVLTree:
             if node is None:
                 return None
 
-            visited.appendleft(node)
-
             if key < node.key:
                 node.left = delete(node.left, key)
+                visited.appendleft(node)
             elif key > node.key:
                 node.right = delete(node.right, key)
+                visited.appendleft(node)
             else:
                 if node.left is None:
                     return node.right
@@ -180,7 +182,21 @@ class AVLTree:
 
         visited = deque([])
         self.root = delete(self.root, key)
-        self.balance(visited)
+        if visited:
+            self.balance(visited)
+
+    def edit(self, key: str, new_node):
+        prev_old_node, old_node = self.get_node(key)
+        if old_node is None:
+            raise ValueError("The element doesn't exists!")
+
+        new_node.left, new_node.right = old_node.left, old_node.right
+        if prev_old_node is None:
+            self.root = new_node
+            return
+
+        if prev_old_node.left == old_node: prev_old_node.left = new_node
+        else: prev_old_node.right = new_node
 
 
 class AVLTable(AVLTree):
